@@ -221,6 +221,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--t);min-h
       <div class="ns">Resultaat</div>
       <div class="ni" onclick="ga(16)" id="n16"><span class="ico">💰</span>Prijsbeheer</div>
       <div class="ni" onclick="ga(17)" id="n17"><span class="ico">📄</span>Offerte</div>
+      <div class="ns" id="admin-sec" style="display:none">Beheer</div>
+      <div class="ni" onclick="ga(18)" id="n18" style="display:none"><span class="ico">👥</span>Gebruikersbeheer</div>
     </div>
     <div class="sbot">
       <div class="sync"><div class="sdot" id="sdot"></div><span id="stxt">Verbonden</span></div>
@@ -818,6 +820,11 @@ function setQ(id,val){const v=parseFloat(val)||0;if(v<=0)delete project.items[id
 // ══════ RENDER ══════
 function render(){document.getElementById('main').innerHTML=SCREENS[scherm]();updateNav();}
 function updateNav(){
+  // Admin menu tonen
+  if(profiel?.plan==='admin'){
+    const as=document.getElementById('admin-sec');if(as)as.style.display='';
+    const an=document.getElementById('n18');if(an)an.style.display='';
+  }
   for(let i=0;i<18;i++){const el=document.getElementById('n'+i);if(el)el.classList.toggle('on',i===scherm);}
   [0,1,16,17].forEach(i=>{const el=document.getElementById('b'+i);if(el)el.classList.toggle('on',i===scherm);});
   document.getElementById('sp-naam').textContent=project.naam||'Nieuw project';
@@ -829,7 +836,7 @@ function nav(d){scherm=Math.max(0,Math.min(17,scherm+d));render();window.scrollT
 function toggleSB(f){const sb=document.getElementById('sidebar'),ov=document.getElementById('ov');const o=f!==undefined?f:!sb.classList.contains('on');sb.classList.toggle('on',o);ov.classList.toggle('on',o);}
 
 // ══════ SCHERMEN ══════
-const SCREENS=[sDash,sProjGegevens,()=>sWerk('grond',1,'Metselwerk'),()=>sWerk('metselwerk',2,'Dak'),()=>sWerk('dak',3,'Kozijnen'),()=>sWerk('kozijnen',4,'Timmerwerk'),()=>sWerk('timmerwerk',5,'Gevel'),()=>sWerk('gevel',6,'Elektra'),()=>sWerk('elektra',7,'Loodgieter'),()=>sWerk('loodgieter',8,'Stukadoor'),()=>sWerk('stukadoor',9,'Badkamer'),()=>sWerk('badkamer',10,'Keuken'),()=>sWerk('keuken',11,'Vloeren'),()=>sWerk('vloeren',12,'Tuin'),()=>sWerk('tuin',13,'Sloopwerk'),()=>sWerk('sloop',14,'Prijsbeheer'),sPrijzen,sOfferte];
+const SCREENS=[sDash,sProjGegevens,()=>sWerk('grond',1,'Metselwerk'),()=>sWerk('metselwerk',2,'Dak'),()=>sWerk('dak',3,'Kozijnen'),()=>sWerk('kozijnen',4,'Timmerwerk'),()=>sWerk('timmerwerk',5,'Gevel'),()=>sWerk('gevel',6,'Elektra'),()=>sWerk('elektra',7,'Loodgieter'),()=>sWerk('loodgieter',8,'Stukadoor'),()=>sWerk('stukadoor',9,'Badkamer'),()=>sWerk('badkamer',10,'Keuken'),()=>sWerk('keuken',11,'Vloeren'),()=>sWerk('vloeren',12,'Tuin'),()=>sWerk('tuin',13,'Sloopwerk'),()=>sWerk('sloop',14,'Prijsbeheer'),sPrijzen,sOfferte,sAdmin];
 
 function sDash(){
   const {inc}=ber();
@@ -1008,6 +1015,40 @@ async function saveBedrijf(){
 function openM(t,b,f=''){document.getElementById('mhdr').textContent=t;document.getElementById('mbdy').innerHTML=b;document.getElementById('mftr').innerHTML=`${f}<button class="btn2 bout" onclick="sluitM()">Sluiten</button>`;document.getElementById('mbg').classList.add('on');}
 function sluitM(){document.getElementById('mbg').classList.remove('on');}
 function tN(t){const n=document.getElementById('notif');n.textContent=t;n.classList.add('on');setTimeout(()=>n.classList.remove('on'),2800);}
+
+// ══════ ADMIN ══════
+async function sAdmin(){
+  if(!sb)return'<div class="al alo">Niet verbonden</div>';
+  try{
+    const {data:users}=await sb.from('profiles').select('*').order('aangemaakt',{ascending:false});
+    return`<div class="card"><div class="chdr" style="background:#7d3c98">👥 Gebruikersbeheer — ${(users||[]).length} accounts</div><div class="cbdy">
+${(users||[]).map(u=>`
+<div style="display:flex;align-items:center;gap:10px;padding:10px 13px;border:1px solid var(--gr2);border-radius:6px;margin-bottom:6px;background:#fff;flex-wrap:wrap">
+  <div style="width:32px;height:32px;background:var(--b);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">${(u.voornaam||u.email||'?')[0].toUpperCase()}</div>
+  <div style="flex:1;min-width:120px">
+    <div style="font-weight:700;font-size:12px">${es((u.voornaam||'')+' '+(u.achternaam||''))||es(u.email)}</div>
+    <div style="font-size:10px;color:var(--t2)">${es(u.email)} · ${es(u.bedrijfsnaam||'—')} · ${new Date(u.aangemaakt).toLocaleDateString('nl-NL')}</div>
+  </div>
+  <span class="badge ${u.plan==='pro'?'bg':u.plan==='admin'?'bo':'bb'}">${(u.plan||'starter').toUpperCase()}</span>
+  <select onchange="wijzigPlan('${u.id}',this.value)" style="font-size:11px;padding:4px 6px;border:1px solid var(--gr2);border-radius:6px;font-family:inherit">
+    ${['starter','pro','business','admin','geblokkeerd'].map(p=>`<option ${u.plan===p?'selected':''}>${p}</option>`).join('')}
+  </select>
+  <button class="btn2 br bsm" onclick="delUser('${u.id}')">✕ Verwijder</button>
+</div>`).join('')}
+</div></div>`;
+  }catch(e){return`<div class="al alo">Fout: ${e.message}</div>`;}
+}
+
+async function wijzigPlan(uid,plan){
+  await sb.from('profiles').update({plan}).eq('id',uid);
+  tN('Plan bijgewerkt ✓');
+  render();
+}
+async function delUser(uid){
+  if(!confirm('Gebruiker verwijderen?'))return;
+  await sb.from('profiles').delete().eq('id',uid);
+  tN('Verwijderd');render();
+}
 
 // ══════ START ══════
 ;(function(){
