@@ -818,7 +818,16 @@ const es=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/
 function setQ(id,val){const v=parseFloat(val)||0;if(v<=0)delete project.items[id];else project.items[id]=v;updateNav();const el=document.getElementById('t_'+id);if(el){const ep=prijzen[id]||0;el.textContent=v>0?eu(v*ep):'—';}}
 
 // ══════ RENDER ══════
-function render(){document.getElementById('main').innerHTML=SCREENS[scherm]();updateNav();}
+async function render(){
+  const result = SCREENS[scherm]();
+  if(result && result.then) {
+    document.getElementById('main').innerHTML = '<div style="text-align:center;padding:40px;color:var(--t2)">Laden...</div>';
+    document.getElementById('main').innerHTML = await result;
+  } else {
+    document.getElementById('main').innerHTML = result;
+  }
+  updateNav();
+}
 function updateNav(){
   // Admin menu tonen
   if(profiel?.plan==='admin'){
